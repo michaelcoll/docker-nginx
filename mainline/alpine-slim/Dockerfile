@@ -7,8 +7,7 @@ FROM alpine:3.16
 
 LABEL maintainer="NGINX Docker Maintainers <docker-maint@nginx.com>"
 
-ENV NGINX_VERSION 1.22.0
-ENV NJS_VERSION   0.7.6
+ENV NGINX_VERSION 1.23.1
 ENV PKG_RELEASE   1
 
 RUN set -x \
@@ -18,10 +17,6 @@ RUN set -x \
     && apkArch="$(cat /etc/apk/arch)" \
     && nginxPackages=" \
         nginx=${NGINX_VERSION}-r${PKG_RELEASE} \
-        nginx-module-xslt=${NGINX_VERSION}-r${PKG_RELEASE} \
-        nginx-module-geoip=${NGINX_VERSION}-r${PKG_RELEASE} \
-        nginx-module-image-filter=${NGINX_VERSION}-r${PKG_RELEASE} \
-        nginx-module-njs=${NGINX_VERSION}.${NJS_VERSION}-r${PKG_RELEASE} \
     " \
 # install prerequisites for public key and pkg-oss checks
     && apk add --no-cache --virtual .checksum-deps \
@@ -39,7 +34,7 @@ RUN set -x \
                 echo "key verification failed!"; \
                 exit 1; \
             fi \
-            && apk add -X "https://nginx.org/packages/alpine/v$(egrep -o '^[0-9]+\.[0-9]+' /etc/alpine-release)/main" --no-cache $nginxPackages \
+            && apk add -X "https://nginx.org/packages/mainline/alpine/v$(egrep -o '^[0-9]+\.[0-9]+' /etc/alpine-release)/main" --no-cache $nginxPackages \
             ;; \
         *) \
 # we're on an architecture upstream doesn't officially build for
@@ -55,29 +50,24 @@ RUN set -x \
                 pcre2-dev \
                 zlib-dev \
                 linux-headers \
-                libxslt-dev \
-                gd-dev \
-                geoip-dev \
-                perl-dev \
-                libedit-dev \
                 bash \
                 alpine-sdk \
                 findutils \
             && su nobody -s /bin/sh -c " \
                 export HOME=${tempDir} \
                 && cd ${tempDir} \
-                && curl -f -O https://hg.nginx.org/pkg-oss/archive/725.tar.gz \
-                && PKGOSSCHECKSUM=\"a6c56bb7e98be77337affe349e1316a71ddad7a732dc3b34294a794b3e740d68385022f0de72d08c090156f194580a92dcb8b5e2aa1c9c29b5a8484a6431e9b3 *725.tar.gz\" \
-                && if [ \"\$(openssl sha512 -r 725.tar.gz)\" = \"\$PKGOSSCHECKSUM\" ]; then \
+                && curl -f -O https://hg.nginx.org/pkg-oss/archive/${NGINX_VERSION}-${PKG_RELEASE}.tar.gz \
+                && PKGOSSCHECKSUM=\"513952f1e0432e667a8e3afef791a2daa036911f35573c849712747f10418f3f5b8712faf75fcb87f91bfaf593622b1e1c4f38ad9fef830f4cae141357206ecd *${NGINX_VERSION}-${PKG_RELEASE}.tar.gz\" \
+                && if [ \"\$(openssl sha512 -r ${NGINX_VERSION}-${PKG_RELEASE}.tar.gz)\" = \"\$PKGOSSCHECKSUM\" ]; then \
                     echo \"pkg-oss tarball checksum verification succeeded!\"; \
                 else \
                     echo \"pkg-oss tarball checksum verification failed!\"; \
                     exit 1; \
                 fi \
-                && tar xzvf 725.tar.gz \
-                && cd pkg-oss-725 \
+                && tar xzvf ${NGINX_VERSION}-${PKG_RELEASE}.tar.gz \
+                && cd pkg-oss-${NGINX_VERSION}-${PKG_RELEASE} \
                 && cd alpine \
-                && make all \
+                && make base \
                 && apk index -o ${tempDir}/packages/alpine/${apkArch}/APKINDEX.tar.gz ${tempDir}/packages/alpine/${apkArch}/*.apk \
                 && abuild-sign -k ${tempDir}/.abuild/abuild-key.rsa ${tempDir}/packages/alpine/${apkArch}/APKINDEX.tar.gz \
                 " \
@@ -112,8 +102,6 @@ RUN set -x \
 # Bring in tzdata so users could set the timezones through the environment
 # variables
     && apk add --no-cache tzdata \
-# Bring in curl and ca-certificates to make registering on DNS SD easier
-    && apk add --no-cache curl ca-certificates \
 # forward request and error logs to docker log collector
     && ln -sf /dev/stdout /var/log/nginx/access.log \
     && ln -sf /dev/stderr /var/log/nginx/error.log \
