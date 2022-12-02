@@ -3,11 +3,11 @@
 #
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
-FROM alpine:3.16
+FROM alpine:3.17
 
 LABEL maintainer="NGINX Docker Maintainers <docker-maint@nginx.com>"
 
-ENV NGINX_VERSION 1.22.0
+ENV NGINX_VERSION 1.22.1
 ENV PKG_RELEASE   1
 
 RUN set -x \
@@ -25,9 +25,9 @@ RUN set -x \
         x86_64|aarch64) \
 # arches officially built by upstream
             set -x \
-            && KEY_SHA512="e7fa8303923d9b95db37a77ad46c68fd4755ff935d0a534d26eba83de193c76166c68bfe7f65471bf8881004ef4aa6df3e34689c305662750c0172fca5d8552a *stdin" \
+            && KEY_SHA512="e09fa32f0a0eab2b879ccbbc4d0e4fb9751486eedda75e35fac65802cc9faa266425edf83e261137a2f4d16281ce2c1a5f4502930fe75154723da014214f0655" \
             && wget -O /tmp/nginx_signing.rsa.pub https://nginx.org/keys/nginx_signing.rsa.pub \
-            && if [ "$(openssl rsa -pubin -in /tmp/nginx_signing.rsa.pub -text -noout | openssl sha512 -r)" = "$KEY_SHA512" ]; then \
+            && if echo "$KEY_SHA512 */tmp/nginx_signing.rsa.pub" | sha512sum -c -; then \
                 echo "key verification succeeded!"; \
                 mv /tmp/nginx_signing.rsa.pub /etc/apk/keys/; \
             else \
@@ -56,16 +56,16 @@ RUN set -x \
             && su nobody -s /bin/sh -c " \
                 export HOME=${tempDir} \
                 && cd ${tempDir} \
-                && curl -f -O https://hg.nginx.org/pkg-oss/archive/725.tar.gz \
-                && PKGOSSCHECKSUM=\"a6c56bb7e98be77337affe349e1316a71ddad7a732dc3b34294a794b3e740d68385022f0de72d08c090156f194580a92dcb8b5e2aa1c9c29b5a8484a6431e9b3 *725.tar.gz\" \
-                && if [ \"\$(openssl sha512 -r 725.tar.gz)\" = \"\$PKGOSSCHECKSUM\" ]; then \
+                && curl -f -O https://hg.nginx.org/pkg-oss/archive/757.tar.gz \
+                && PKGOSSCHECKSUM=\"32a039e8d3cc54404a8ad4a31981e76a49632f1ebec2f45bb309689d6ba2f82e3e8aea8abf582b49931636ea53271b48a7e2f2ef8ebe35b167b3fe18b8b99852 *757.tar.gz\" \
+                && if [ \"\$(openssl sha512 -r 757.tar.gz)\" = \"\$PKGOSSCHECKSUM\" ]; then \
                     echo \"pkg-oss tarball checksum verification succeeded!\"; \
                 else \
                     echo \"pkg-oss tarball checksum verification failed!\"; \
                     exit 1; \
                 fi \
-                && tar xzvf 725.tar.gz \
-                && cd pkg-oss-725 \
+                && tar xzvf 757.tar.gz \
+                && cd pkg-oss-757 \
                 && cd alpine \
                 && make base \
                 && apk index -o ${tempDir}/packages/alpine/${apkArch}/APKINDEX.tar.gz ${tempDir}/packages/alpine/${apkArch}/*.apk \
